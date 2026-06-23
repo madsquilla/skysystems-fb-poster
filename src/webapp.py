@@ -185,27 +185,59 @@ def _scheduler_loop() -> None:
 
 # --- routes ----------------------------------------------------------------
 
-@app.route("/")
-def index():
+def _back():
+    """Redirect back to the page the action came from."""
+    return redirect(request.referrer or url_for("overview"))
+
+
+def _render(page, title):
     approved = store.read_approved()
     scheduled = sorted(
         [a for a in approved if a.get("scheduled_at")],
         key=lambda i: i.get("scheduled_at", ""),
     )
     ready = [a for a in approved if not a.get("scheduled_at")]
+    history = list(reversed(store.read_history()))
     return render_template_string(
         TEMPLATE,
+        page=page,
+        page_title=title,
         pending=store.read_pending(),
         scheduled=scheduled,
         ready=ready,
-        history=list(reversed(store.read_history()))[:12],
-        posted_total=len(store.read_history()),
+        history=history[:40],
+        posted_total=len(history),
         settings=store.read_settings(),
         formats=gen.POST_FORMATS,
         day_options=DAY_OPTIONS,
         meta_ready=_meta_ready(),
         now_local=datetime.now().strftime("%Y-%m-%dT%H:%M"),
     )
+
+
+@app.route("/")
+def overview():
+    return _render("overview", "Overview")
+
+
+@app.route("/review")
+def review():
+    return _render("review", "In Review")
+
+
+@app.route("/approved")
+def approved_page():
+    return _render("approved", "Ready to Publish")
+
+
+@app.route("/scheduled")
+def scheduled_page():
+    return _render("scheduled", "Scheduled")
+
+
+@app.route("/published")
+def published():
+    return _render("published", "Published")
 
 
 @app.route("/card/<path:name>")
@@ -235,7 +267,7 @@ def generate():
     except Exception as exc:  # noqa: BLE001
         logger.exception("Generate failed")
         flash(f"Generation failed: {exc}", "err")
-    return redirect(url_for("index"))
+    return _back()
 
 
 @app.route("/generate-custom", methods=["POST"])
@@ -244,7 +276,7 @@ def generate_custom():
     fmt_id = request.form.get("format") or ""
     if not topic:
         flash("Type what the post should be about first.", "err")
-        return redirect(url_for("index"))
+        return _back()
     try:
         fmt = gen.get_format(fmt_id) if fmt_id else None
         item = gen.generate_custom(topic, fmt=fmt)
@@ -255,7 +287,7 @@ def generate_custom():
     except Exception as exc:  # noqa: BLE001
         logger.exception("Custom generate failed")
         flash(f"Custom generation failed: {exc}", "err")
-    return redirect(url_for("index"))
+    return _back()
 
 
 @app.route("/approve/<item_id>", methods=["POST"])
@@ -267,7 +299,7 @@ def approve(item_id):
             store.write_pending(rest)
             store.write_approved(store.read_approved() + [item])
             flash("Approved.", "ok")
-    return redirect(url_for("index"))
+    return _back()
 
 
 @app.route("/unapprove/<item_id>", methods=["POST"])
@@ -280,7 +312,7 @@ def unapprove(item_id):
             store.write_approved(rest)
             store.write_pending(store.read_pending() + [item])
             flash("Moved back to review.", "ok")
-    return redirect(url_for("index"))
+    return _back()
 
 
 @app.route("/discard/<item_id>", methods=["POST"])
@@ -296,7 +328,7 @@ def discard(item_id):
         if item:
             _delete_card(item)
             flash("Discarded.", "ok")
-    return redirect(url_for("index"))
+    return _back()
 
 
 @app.route("/clear-pending", methods=["POST"])
@@ -307,7 +339,7 @@ def clear_pending():
             _delete_card(it)
         store.write_pending([])
         flash(f"Cleared {len(items)} post(s) from review.", "ok")
-    return redirect(url_for("index"))
+    return _back()
 
 
 @app.route("/clear-scheduled", methods=["POST"])
@@ -319,7 +351,7 @@ def clear_scheduled():
             _delete_card(it)
         store.write_approved([a for a in approved if not a.get("scheduled_at")])
         flash(f"Cleared {len(scheduled)} scheduled post(s).", "ok")
-    return redirect(url_for("index"))
+    return _back()
 
 
 @app.route("/schedule/<item_id>", methods=["POST"])
@@ -329,7 +361,7 @@ def schedule(item_id):
         dt = datetime.fromisoformat(when)
     except ValueError:
         flash("Pick a valid date and time.", "err")
-        return redirect(url_for("index"))
+        return _back()
     with _LOCK:
         approved = store.read_approved()
         for it in approved:
@@ -338,7 +370,7 @@ def schedule(item_id):
                 store.write_approved(approved)
                 flash(f"Scheduled for {dt.strftime('%a %b %d, %I:%M %p')}.", "ok")
                 break
-    return redirect(url_for("index"))
+    return _back()
 
 
 @app.route("/unschedule/<item_id>", methods=["POST"])
@@ -351,7 +383,7 @@ def unschedule(item_id):
                 store.write_approved(approved)
                 flash("Schedule cleared.", "ok")
                 break
-    return redirect(url_for("index"))
+    return _back()
 
 
 @app.route("/publish/<item_id>", methods=["POST"])
@@ -360,7 +392,7 @@ def publish_one(item_id):
         item, rest = _pop(store.read_approved(), item_id)
         if not item:
             flash("That post is no longer approved.", "err")
-            return redirect(url_for("index"))
+            return _back()
         try:
             pid = _do_publish(item)
             store.write_approved(rest)
@@ -369,7 +401,7 @@ def publish_one(item_id):
             flash(f"Token problem: {exc}", "err")
         except pub.PublishError as exc:
             flash(f"Publish failed: {exc}", "err")
-    return redirect(url_for("index"))
+    return _back()
 
 
 @app.route("/settings", methods=["POST"])
@@ -385,7 +417,7 @@ def settings_save():
     s["auto_pilot_times"] = sorted(set(times)) or ["09:00"]
     store.write_settings(s)
     flash("Auto-pilot settings saved.", "ok")
-    return redirect(url_for("index"))
+    return _back()
 
 
 TEMPLATE = r"""
@@ -455,6 +487,7 @@ TEMPLATE = r"""
   .side-nav a{display:flex;align-items:center;justify-content:space-between;
     padding:10px 12px;border-radius:9px;color:#aebccc;font-weight:500;transition:.14s;}
   .side-nav a:hover{background:rgba(255,255,255,.07);color:#fff;}
+  .side-nav a.active{background:rgba(47,170,70,.18);color:#fff;box-shadow:inset 3px 0 0 var(--green);}
   .side-nav a .n{background:rgba(255,255,255,.12);color:#d3dde7;border-radius:99px;
     font-size:11px;font-weight:600;padding:1px 8px;min-width:20px;text-align:center;}
   .side-foot{margin-top:auto;padding:12px 10px 4px;}
@@ -486,6 +519,7 @@ TEMPLATE = r"""
   .stat .lbl{color:var(--mut);font-size:11.5px;text-transform:uppercase;letter-spacing:.09em;
     margin-top:9px;font-weight:600;}
   .stat.g .num{color:var(--green);} .stat.b .num{color:var(--blue);} .stat.a .num{color:var(--amber);}
+  a.stat{display:block;transition:.14s;} a.stat:hover{border-color:#c2cdd9;box-shadow:0 2px 6px rgba(16,24,40,.08);}
 
   /* section heads */
   .sec{display:flex;align-items:center;gap:10px;margin:38px 0 16px;}
@@ -582,12 +616,11 @@ TEMPLATE = r"""
   <aside class="sidebar">
     <div class="side-logo"><img src="{{ url_for('brand', name='logo_full.png') }}" alt="SkySystems USA"></div>
     <nav class="side-nav">
-      <a href="#overview">Overview</a>
-      <a href="#create">Create</a>
-      <a href="#scheduled">Scheduled <span class="n">{{ scheduled|length }}</span></a>
-      <a href="#approved">Approved <span class="n">{{ ready|length }}</span></a>
-      <a href="#review">In Review <span class="n">{{ pending|length }}</span></a>
-      <a href="#published">Published</a>
+      <a href="{{ url_for('overview') }}" class="{{ 'active' if page=='overview' }}">Overview</a>
+      <a href="{{ url_for('review') }}" class="{{ 'active' if page=='review' }}">In Review <span class="n">{{ pending|length }}</span></a>
+      <a href="{{ url_for('approved_page') }}" class="{{ 'active' if page=='approved' }}">Ready <span class="n">{{ ready|length }}</span></a>
+      <a href="{{ url_for('scheduled_page') }}" class="{{ 'active' if page=='scheduled' }}">Scheduled <span class="n">{{ scheduled|length }}</span></a>
+      <a href="{{ url_for('published') }}" class="{{ 'active' if page=='published' }}">Published <span class="n">{{ posted_total }}</span></a>
     </nav>
     <div class="side-foot">
       {% if meta_ready %}<span class="pill on"><span class="dot"></span>Connected</span>
@@ -597,8 +630,8 @@ TEMPLATE = r"""
 
   <main class="main">
     <div class="topbar">
-      <h1>Post Studio</h1>
-      <p class="sub">SkySystems USA &middot; content workspace</p>
+      <h1>{{ page_title }}</h1>
+      <p class="sub">SkySystems USA &middot; Post Studio</p>
     </div>
     <div class="content">
       {% with msgs = get_flashed_messages(with_categories=true) %}
@@ -606,14 +639,15 @@ TEMPLATE = r"""
       {% endwith %}
       {% if not meta_ready %}<div class="warn">Facebook keys not set (META_PAGE_ID / META_PAGE_ACCESS_TOKEN). You can generate, review, and schedule, but publishing is disabled.</div>{% endif %}
 
-      <section id="overview" class="stats">
-        <div class="stat"><div class="num">{{ pending|length }}</div><div class="lbl">In Review</div></div>
-        <div class="stat g"><div class="num">{{ ready|length }}</div><div class="lbl">Ready</div></div>
-        <div class="stat a"><div class="num">{{ scheduled|length }}</div><div class="lbl">Scheduled</div></div>
-        <div class="stat b"><div class="num">{{ posted_total }}</div><div class="lbl">Published</div></div>
+      {% if page == 'overview' %}
+      <section class="stats">
+        <a class="stat" href="{{ url_for('review') }}"><div class="num">{{ pending|length }}</div><div class="lbl">In Review</div></a>
+        <a class="stat g" href="{{ url_for('approved_page') }}"><div class="num">{{ ready|length }}</div><div class="lbl">Ready</div></a>
+        <a class="stat a" href="{{ url_for('scheduled_page') }}"><div class="num">{{ scheduled|length }}</div><div class="lbl">Scheduled</div></a>
+        <a class="stat b" href="{{ url_for('published') }}"><div class="num">{{ posted_total }}</div><div class="lbl">Published</div></a>
       </section>
 
-      <div class="sec" id="create"><h2>Create</h2><span class="ln"></span></div>
+      <div class="sec"><h2>Create</h2><span class="ln"></span></div>
       <div class="create">
         <div class="panel">
           <h3>Custom post</h3>
@@ -667,25 +701,33 @@ TEMPLATE = r"""
           </form>
         </div>
       </div>
+      {% endif %}
 
-      {% if scheduled %}
-      <div class="sec" id="scheduled"><h2>Scheduled</h2><span class="count">{{ scheduled|length }}</span><span class="ln"></span>
-        <form method="post" action="{{ url_for('clear_scheduled') }}" onsubmit="return confirm('Delete ALL scheduled posts? This cannot be undone.')"><button class="btn danger sm">Delete all</button></form></div>
+      {% if page == 'review' %}
+      <div class="sec"><h2>In review</h2><span class="count">{{ pending|length }}</span><span class="ln"></span>
+        {% if pending %}<form method="post" action="{{ url_for('clear_pending') }}" onsubmit="return confirm('Delete ALL posts in review? This cannot be undone.')"><button class="btn danger sm">Delete all</button></form>{% endif %}</div>
+      {% if not pending %}<div class="empty">Nothing in review. Go to <a href="{{ url_for('overview') }}" style="color:var(--green);">Overview</a> to create posts.</div>{% endif %}
+      {% for p in pending %}{{ render_post(p, "pending", meta_ready, now_local) }}{% endfor %}
+      {% endif %}
+
+      {% if page == 'approved' %}
+      <div class="sec"><h2>Ready to publish</h2><span class="count">{{ ready|length }}</span><span class="ln"></span></div>
+      {% if not ready %}<div class="empty">Nothing approved yet. Approve posts from <a href="{{ url_for('review') }}" style="color:var(--green);">In Review</a>.</div>{% endif %}
+      {% for p in ready %}{{ render_post(p, "approved", meta_ready, now_local) }}{% endfor %}
+      {% endif %}
+
+      {% if page == 'scheduled' %}
+      <div class="sec"><h2>Scheduled</h2><span class="count">{{ scheduled|length }}</span><span class="ln"></span>
+        {% if scheduled %}<form method="post" action="{{ url_for('clear_scheduled') }}" onsubmit="return confirm('Delete ALL scheduled posts? This cannot be undone.')"><button class="btn danger sm">Delete all</button></form>{% endif %}</div>
+      {% if not scheduled %}<div class="empty">No scheduled posts. Schedule one from <a href="{{ url_for('approved_page') }}" style="color:var(--green);">Ready to Publish</a>.</div>{% endif %}
       {% for p in scheduled %}{{ render_post(p, "scheduled", meta_ready, now_local) }}{% endfor %}
       {% endif %}
 
-      <div class="sec" id="approved"><h2>Ready to publish</h2><span class="count">{{ ready|length }}</span><span class="ln"></span></div>
-      {% if not ready %}<div class="empty">Nothing approved yet. Approve posts from review, or create one above.</div>{% endif %}
-      {% for p in ready %}{{ render_post(p, "approved", meta_ready, now_local) }}{% endfor %}
-
-      <div class="sec" id="review"><h2>In review</h2><span class="count">{{ pending|length }}</span><span class="ln"></span>
-        {% if pending %}<form method="post" action="{{ url_for('clear_pending') }}" onsubmit="return confirm('Delete ALL posts in review? This cannot be undone.')"><button class="btn danger sm">Delete all</button></form>{% endif %}</div>
-      {% if not pending %}<div class="empty">Queue is empty. Create a post above to get started.</div>{% endif %}
-      {% for p in pending %}{{ render_post(p, "pending", meta_ready, now_local) }}{% endfor %}
-
-      <div class="sec" id="published"><h2>Recently published</h2><span class="count">{{ history|length }}</span><span class="ln"></span></div>
+      {% if page == 'published' %}
+      <div class="sec"><h2>Published</h2><span class="count">{{ posted_total }}</span><span class="ln"></span></div>
       {% if not history %}<div class="empty">No posts published yet.</div>{% endif %}
       {% for p in history %}{{ render_post(p, "history", meta_ready, now_local) }}{% endfor %}
+      {% endif %}
     </div>
   </main>
 </div>
