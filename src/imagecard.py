@@ -524,6 +524,248 @@ def _draw_text_block(draw, x, col_w, text_top, body_limit, kicker, headline,
             y += lh
 
 
+# --- design-system palette + helpers ---------------------------------------
+NAVY_DEEP = (9, 18, 30)
+INK = (22, 37, 53)            # near-black text on light templates
+PAPER = (244, 246, 249)       # light template background
+SUPPORT = (190, 202, 216)     # support text on navy
+DOMAIN_DIM = (150, 166, 182)
+
+_NUM_RE = re.compile(r"(\d[\d,]*\.?\d*\s?%|\$\d[\d,]*|\d+x|\d+\+|\d+(?:st|nd|rd|th)|\d+/\d+)")
+_SENT_RE = re.compile(r"(.{18,150}?[.!?])(?:\s|$)")
+
+
+def _lead_sentence(text: str) -> str:
+    t = " ".join((text or "").split())
+    m = _SENT_RE.match(t)
+    return (m.group(1) if m else t[:140]).strip()
+
+
+def _first_stat(text: str, headline: str) -> str | None:
+    for s in (headline or "", text or ""):
+        m = _NUM_RE.search(s)
+        if m:
+            return m.group(1).strip()
+    return None
+
+
+def _list_items(post_text: str) -> list[str]:
+    items = []
+    for p in _clean_body_for_image(post_text).split("\n"):
+        m = _LIST_RE.match(p.strip())
+        if m:
+            items.append(m.group(2).strip())
+    return items
+
+
+def _kicker_tab(draw, x, y, label, accent, ink=(255, 255, 255)) -> int:
+    f = _font("Rajdhani-SemiBold.ttf", 23)
+    label = (label or "").upper()
+    w = sum(draw.textlength(c, font=f) + 4 for c in label) - 4
+    draw.rectangle([x, y, x + int(w) + 30, y + 38], fill=accent)
+    _draw_tracked(draw, (x + 15, y + 6), label, f, ink, 4)
+    return y + 38
+
+
+def _footer_navy(img, draw, margin, light=False):
+    fy = _LH - 84
+    _place_logo_full(img, margin, fy, 50)
+    fd = _font("Rajdhani-SemiBold.ttf", 24)
+    dw = draw.textlength("skyusa.us", font=fd)
+    draw.text((_LW - margin - dw, fy + 12), "skyusa.us", font=fd, fill=DOMAIN_DIM)
+
+
+def render_statement(post_text, out_path, kicker, headline, accent, seed=None):
+    """Bold typographic poster, no photo: kicker tab + huge headline + lead."""
+    img = _navy_gradient(_LW, _LH)
+    try:
+        mk = Image.open(_LOGO_MARK).convert("RGBA")
+        th = 600
+        mk = mk.resize((int(mk.width * th / mk.height), th))
+        a = mk.split()[3].point(lambda p: int(p * 0.07))
+        mk.putalpha(a)
+        img.alpha_composite(mk, (_LW - mk.width + 130, (_LH - mk.height) // 2))
+    except Exception:
+        pass
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([0, 0, 9, _LH], fill=accent)
+    margin = 78
+    col_w = _LW - margin - 330
+    _kicker_tab(draw, margin, 72, kicker, accent)
+    y = 144
+    headline = (headline or "").strip().upper()
+    fh = _font("Rajdhani-Bold.ttf", 104)
+    hl, head_lh = [headline], 104
+    for hs in range(104, 57, -6):
+        fh = _font("Rajdhani-Bold.ttf", hs)
+        hl = _wrap(draw, headline, fh, col_w)
+        head_lh = int(hs * 1.0)
+        if len(hl) <= 3:
+            break
+    for ln in hl:
+        draw.text((margin, y), ln, font=fh, fill=WHITE)
+        y += head_lh
+    draw.rectangle([margin, y + 12, margin + 92, y + 20], fill=accent)
+    y += 46
+    fs = _font("NunitoSans.ttf", 26)
+    for ln in _wrap(draw, _lead_sentence(post_text), fs, col_w)[:3]:
+        draw.text((margin, y), ln, font=fs, fill=SUPPORT)
+        y += 38
+    draw = ImageDraw.Draw(img)
+    _footer_navy(img, draw, margin)
+    Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+    img.convert("RGB").save(out_path, "PNG")
+    return "statement"
+
+
+def render_stat(post_text, out_path, kicker, headline, accent, seed=None):
+    """Big-number hero for stat-driven posts."""
+    img = _navy_gradient(_LW, _LH)
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([0, 0, 9, _LH], fill=accent)
+    margin = 78
+    _kicker_tab(draw, margin, 70, kicker, accent)
+    stat = _first_stat(post_text, headline) or "24/7"
+    fn = _font("Rajdhani-Bold.ttf", 196)
+    draw.text((margin - 6, 132), stat, font=fn, fill=accent)
+    y = 348
+    fh = _font("Rajdhani-Bold.ttf", 50)
+    for ln in _wrap(draw, (headline or "").upper(), fh, _LW - 2 * margin)[:2]:
+        draw.text((margin, y), ln, font=fh, fill=WHITE)
+        y += 53
+    y += 12
+    fs = _font("NunitoSans.ttf", 24)
+    for ln in _wrap(draw, _lead_sentence(post_text), fs, _LW - 2 * margin)[:2]:
+        draw.text((margin, y), ln, font=fs, fill=SUPPORT)
+        y += 34
+    _footer_navy(img, draw, margin)
+    Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+    img.convert("RGB").save(out_path, "PNG")
+    return "stat"
+
+
+def render_checklist(post_text, out_path, kicker, headline, accent, seed=None):
+    """Clean LIGHT card with numbered accent badges -- strong contrast to the
+    dark photo/typographic cards."""
+    img = Image.new("RGB", (_LW, _LH), PAPER).convert("RGBA")
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([0, 0, _LW, 8], fill=accent)
+    margin = 84
+    _kicker_tab(draw, margin, 56, kicker, accent)
+    y = 116
+    fh = _font("Rajdhani-Bold.ttf", 50)
+    for ln in _wrap(draw, (headline or "").upper(), fh, _LW - 2 * margin)[:2]:
+        draw.text((margin, y), ln, font=fh, fill=INK)
+        y += 52
+    y += 22
+    items = _list_items(post_text)
+    if not items:
+        items = [s for s in _lead_sentence(post_text).split(". ") if s][:3]
+    fi = _font("NunitoSans.ttf", 25)
+    fb = _font("Rajdhani-Bold.ttf", 25)
+    limit = _LH - 100
+    for idx, it in enumerate(items[:4], 1):
+        if y + 44 > limit:
+            break
+        draw.ellipse([margin, y, margin + 40, y + 40], fill=accent)
+        ns = str(idx)
+        nw = draw.textlength(ns, font=fb)
+        draw.text((margin + 20 - nw / 2, y + 6), ns, font=fb, fill=(255, 255, 255))
+        ty = y + 3
+        for ln in _wrap(draw, it, fi, _LW - margin - 60 - margin)[:2]:
+            draw.text((margin + 58, ty), ln, font=fi, fill=(54, 68, 82))
+            ty += 33
+        y = max(y + 52, ty + 12)
+    bar_h = 76
+    draw.rectangle([0, _LH - bar_h, _LW, _LH], fill=NAVY_DEEP)
+    _place_logo_full(img, margin, _LH - bar_h + (bar_h - 42) // 2, 42)
+    fd = _font("Rajdhani-SemiBold.ttf", 23)
+    dw = draw.textlength("skyusa.us", font=fd)
+    draw.text((_LW - margin - dw, _LH - bar_h + (bar_h - 22) // 2), "skyusa.us",
+              font=fd, fill=(150, 166, 182))
+    Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+    img.convert("RGB").save(out_path, "PNG")
+    return "checklist"
+
+
+def render_editorial(post_text, out_path, kicker, headline, accent, photo_path, seed=None):
+    """Photo-forward: brand-toned full photo, big headline over a bottom scrim."""
+    img = _brand_tone(ImageOps.fit(Image.open(photo_path).convert("RGB"),
+                                   (_LW, _LH), method=Image.LANCZOS), accent).convert("RGBA")
+    band = Image.new("RGBA", (_LW, _LH), (0, 0, 0, 0))
+    bd = ImageDraw.Draw(band)
+    for y in range(_LH):
+        t = max(0.0, (y - (_LH - 340)) / 340)
+        bd.line([(0, y), (_LW, y)], fill=(*NAVY_DEEP, int(238 * (t ** 1.25))))
+    img.alpha_composite(band)
+    draw = ImageDraw.Draw(img)
+    margin = 78
+    fh = _font("Rajdhani-Bold.ttf", 64)
+    hl = _wrap(draw, (headline or "").upper(), fh, _LW - 2 * margin)[:3]
+    fy = _LH - 84
+    y = fy - 22 - len(hl) * 64
+    _kicker_tab(draw, margin, y - 56, kicker, accent)
+    for ln in hl:
+        draw.text((margin, y), ln, font=fh, fill=WHITE)
+        y += 64
+    _footer_navy(img, draw, margin)
+    Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+    img.convert("RGB").save(out_path, "PNG")
+    return "editorial"
+
+
+# Map post format -> primary template. Different content gets different design.
+_FORMAT_TEMPLATE = {
+    "stat-led": "stat",
+    "listicle": "checklist", "how-to": "checklist", "quick-tip": "checklist",
+    "one-bold-idea": "statement", "question-led": "statement",
+    "myth-reality": "statement", "comparison": "statement",
+    "scenario": "editorial", "human-angle": "split",
+}
+
+
+def render_post_graphic(post_text, out_path, kicker="", headline="",
+                        format_id="", photo_path=None, accent=None, seed=None):
+    """Pick a template that fits the post's content and render it. Returns the
+    template name used (also serves as image_style)."""
+    rng = random.Random(seed)
+    if accent is None:
+        accent = rng.choice([GREEN_SOFT, BLUE])
+    headline = (headline or "").strip()
+
+    t = _FORMAT_TEMPLATE.get(format_id or "")
+    has_list = bool(_list_items(post_text))
+    has_stat = _first_stat(post_text, headline) is not None
+
+    if t == "stat" and not has_stat:
+        t = "checklist" if has_list else "statement"
+    if t == "checklist" and not has_list:
+        t = "statement"
+    if t in ("editorial", "split") and not photo_path:
+        t = "checklist" if has_list else "statement"
+    if t is None:
+        t = (rng.choice(["editorial", "split", "overlay"]) if photo_path
+             else ("checklist" if has_list else "statement"))
+    # a little cross-variety so the same format is not always identical
+    if photo_path and t in ("statement",) and rng.random() < 0.28:
+        t = rng.choice(["editorial", "split"])
+    if not photo_path and t in ("editorial", "split", "overlay"):
+        t = "statement"
+
+    if t == "statement":
+        return render_statement(post_text, out_path, kicker, headline, accent, seed)
+    if t == "stat":
+        return render_stat(post_text, out_path, kicker, headline, accent, seed)
+    if t == "checklist":
+        return render_checklist(post_text, out_path, kicker, headline, accent, seed)
+    if t == "editorial":
+        return render_editorial(post_text, out_path, kicker, headline, accent, photo_path, seed)
+    # split / overlay reuse the landscape renderer
+    render_landscape_card(post_text, out_path, kicker=kicker, photo_path=photo_path,
+                          accent=accent, headline=headline, seed=seed, layout=t)
+    return t
+
+
 def render_landscape_card(
     post_text: str,
     out_path: str | Path,

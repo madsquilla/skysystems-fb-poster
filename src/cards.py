@@ -28,11 +28,13 @@ def build_card(item: dict) -> dict:
     try:
         src_photo = CARDS_DIR / f"_src_{item['id']}.jpg"
         photo = images.fetch_stock_photo(query, src_photo)
-        imagecard.render_landscape_card(
-            item["post_text"], out, kicker=kicker, photo_path=photo,
+        # Pick a template that fits the post's content (statement / stat /
+        # checklist / editorial / split / overlay) instead of one fixed layout.
+        item["image_style"] = imagecard.render_post_graphic(
+            item["post_text"], out, kicker=kicker,
             headline=item.get("image_headline", ""),
+            format_id=item.get("format", ""), photo_path=photo,
         )
-        item["image_style"] = "landscape-photo" if photo else "landscape"
         if photo is not None:
             try:
                 Path(photo).unlink()
