@@ -331,6 +331,18 @@ def discard(item_id):
     return _back()
 
 
+@app.route("/approve-all", methods=["POST"])
+def approve_all():
+    with _LOCK:
+        pending = store.read_pending()
+        for it in pending:
+            it["status"] = "approved"
+        store.write_approved(store.read_approved() + pending)
+        store.write_pending([])
+        flash(f"Approved {len(pending)} post(s).", "ok")
+    return _back()
+
+
 @app.route("/clear-pending", methods=["POST"])
 def clear_pending():
     with _LOCK:
@@ -705,7 +717,8 @@ TEMPLATE = r"""
 
       {% if page == 'review' %}
       <div class="sec"><h2>In review</h2><span class="count">{{ pending|length }}</span><span class="ln"></span>
-        {% if pending %}<form method="post" action="{{ url_for('clear_pending') }}" onsubmit="return confirm('Delete ALL posts in review? This cannot be undone.')"><button class="btn danger sm">Delete all</button></form>{% endif %}</div>
+        {% if pending %}<form method="post" action="{{ url_for('approve_all') }}" onsubmit="return confirm('Approve all {{ pending|length }} post(s)?')"><button class="btn primary sm">Approve all</button></form>
+        <form method="post" action="{{ url_for('clear_pending') }}" onsubmit="return confirm('Delete ALL posts in review? This cannot be undone.')"><button class="btn danger sm">Delete all</button></form>{% endif %}</div>
       {% if not pending %}<div class="empty">Nothing in review. Go to <a href="{{ url_for('overview') }}" style="color:var(--green);">Overview</a> to create posts.</div>{% endif %}
       {% for p in pending %}{{ render_post(p, "pending", meta_ready, now_local) }}{% endfor %}
       {% endif %}
