@@ -63,21 +63,30 @@ BRAND: dict[str, Any] = {
         "Strategic Infrastructure",
     ],
     "service_pillars": [
-        "Managed IT Services (dedicated IT department)",
         "Cybersecurity & Compliance",
-        "Cloud Infrastructure",
-        "Backup & Disaster Recovery",
-        "Strategic IT Consulting (vCIO)",
-        "VoIP & Unified Communications",
+        "Managed IT & Helpdesk (a dedicated IT department, real people answer)",
+        "Microsoft 365 & Microsoft Azure",
+        "Cloud Hosting & AWS",
+        "Backup & Disaster Recovery (Veeam)",
+        "Network Security & WatchGuard Firewalls",
+        "Networking & WiFi",
+        "Business Phones / VoIP (3CX)",
+        "AI Implementation (governed, business-ready AI)",
     ],
     "verticals": [
-        "Ministries & Non-Profits (houses of worship)",
-        "Manufacturing (uptime, OT security)",
-        "Public Safety & Municipalities (CJIS-compliant body cam storage, "
-        "dispatch reliability, ransomware resilience, audit-ready docs)",
-        "Enterprise Media & Streaming",
-        "Commercial Services (SMB / Trades)",
-        "Hospitality & Retail Franchises (POS/PCI, guest wifi)",
+        "Public Safety & Municipalities (CJIS-compliant networks, dispatch/CAD "
+        "uptime, ransomware defense, audit-ready documentation)",
+        "Ministries & Non-Profits (donor/member data security, broadcast-quality "
+        "streaming, volunteer access control, lean budgets)",
+        "Mega Churches & Multi-Campus (broadcast-grade production, multi-site "
+        "infrastructure, AI-ready)",
+        "Financial Services (regulator-grade security, exam-ready compliance, "
+        "wire/invoice fraud defense, governed AI)",
+        "Professional Services (law, accounting, consulting; privileged data, "
+        "billable-system uptime, safe AI)",
+        "Retail (PCI-aligned multi-site networks, POS uptime)",
+        "Smaller Cities & Towns (CJIS, ransomware defense, public-budget pricing)",
+        "Technology, Media & Telecom (cloud, DevOps, high-throughput infra, AI)",
     ],
     "compliance": ["NIST", "HIPAA", "CJIS", "SEC", "PCI"],
     "signature_stat": (
@@ -214,6 +223,10 @@ WRITING QUALITY (aim higher than generic)
   and obvious statements. Tight and substantive, not padded.
 - Open with a specific, concrete hook, not a vague generality.
 - Prefer real specifics (a scenario, a number, a named framework) over fluff.
+- Reference REAL SkySystems services and industries accurately (see the service
+  pillars and target verticals above). Name concrete offerings when relevant
+  (e.g. Veeam backup, WatchGuard firewalls, 3CX phones, Microsoft 365, CJIS
+  compliance, governed AI). Never invent services we do not offer.
 - Vary sentence and paragraph structure between posts so they do not all feel
   templated. No two posts should open the same way.
 - You will be given a specific FORMAT and LENGTH for THIS post. Follow them.
@@ -234,9 +247,12 @@ caption shown above it. You write both:
 2. caption -> the short text shown ABOVE the image in the Facebook post. This is
    where the clickable link and hashtags belong. Format it as:
    one short sentence that complements the message (do not just repeat it),
-   then the link {BRAND['website']} ,
+   then the EXACT page link you are given for this post (it deep-links to the
+   specific service or industry the post is about, e.g.
+   {BRAND['website']}/solutions/cybersecurity),
    then 2 to 4 relevant hashtags.
-   Keep the caption brief.
+   Keep the caption brief. Use the provided link verbatim; do not shorten it to
+   the homepage.
 
 Plus three helper fields for the graphic:
 - image_headline: a short, bold 3 to 7 word title shown large at the top of the

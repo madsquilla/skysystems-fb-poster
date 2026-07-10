@@ -3,96 +3,161 @@
     "id": "threat-of-the-week",
     "description": "Plain-English security tip framed as a 'threat of the week'.",
     "angle": "Name one current threat, explain it simply, give one practical defense. Reassuring, not fear-mongering.",
-    "vertical": null
-  },
-  {
-    "id": "backup-dr-myth-vs-reality",
-    "description": "Backup and disaster recovery, myth vs reality.",
-    "angle": "Bust one common misconception about backups (e.g. 'we have backups so we are safe'). Explain what real recoverability looks like.",
-    "vertical": null
-  },
-  {
-    "id": "compliance-spotlight",
-    "description": "Compliance spotlight rotating NIST / HIPAA / CJIS / SEC / PCI, tied to a vertical.",
-    "angle": "Pick one framework, explain in plain English why it matters for a specific industry, and how an MSP makes it manageable.",
-    "vertical": "Public Safety & Municipalities"
+    "vertical": null,
+    "link": "https://skyusa.us/solutions/cybersecurity"
   },
   {
     "id": "phishing-red-flags",
     "description": "Phishing red flags employees should know.",
-    "angle": "List 2-3 concrete tells of a phishing message. Educational, empowering, end with a soft CTA.",
-    "vertical": null
+    "angle": "List 2-3 concrete tells of a phishing message. Wire-transfer and invoice-fraud lures are common. Educational, empowering.",
+    "vertical": null,
+    "link": "https://skyusa.us/solutions/cybersecurity"
   },
   {
     "id": "password-mfa-basics",
     "description": "Password and MFA basics done right.",
     "angle": "Explain why MFA matters and one practical way to roll it out without frustrating staff.",
-    "vertical": null
-  },
-  {
-    "id": "what-an-msp-does",
-    "description": "'What an MSP actually does' explainer.",
-    "angle": "Demystify managed IT for a small business owner. Frame the MSP as a dedicated IT department without the overhead.",
-    "vertical": null
-  },
-  {
-    "id": "local-austin-partner",
-    "description": "Why a local Austin IT partner beats a faceless national provider.",
-    "angle": "Lean into being Austin-based: local, responsive, knows Texas businesses. A real partner you can reach, not a distant call center.",
-    "vertical": null
-  },
-  {
-    "id": "vertical-ministries",
-    "description": "Vertical spotlight: Ministries & Non-Profits (houses of worship).",
-    "angle": "Speak to a ministry or non-profit: protect donor data and member info on a tight budget. Warm, mission-aligned tone.",
-    "vertical": "Ministries & Non-Profits"
-  },
-  {
-    "id": "vertical-public-safety",
-    "description": "Vertical spotlight: Public Safety & Municipalities (CJIS, body cam storage, dispatch reliability).",
-    "angle": "Speak to a police department or municipality: CJIS-compliant body cam storage, dispatch uptime, ransomware resilience, audit-ready docs.",
-    "vertical": "Public Safety & Municipalities"
-  },
-  {
-    "id": "vertical-manufacturing",
-    "description": "Vertical spotlight: Manufacturing (uptime, OT security).",
-    "angle": "Speak to a manufacturer: downtime costs money, OT/IT convergence creates risk. Strategic infrastructure framing.",
-    "vertical": "Manufacturing"
-  },
-  {
-    "id": "vertical-hospitality-retail",
-    "description": "Vertical spotlight: Hospitality & Retail Franchises (POS/PCI, guest wifi).",
-    "angle": "Speak to a franchise or hospitality operator: secure POS, PCI compliance, safe guest wifi across locations.",
-    "vertical": "Hospitality & Retail Franchises"
-  },
-  {
-    "id": "helpdesk-human-story",
-    "description": "Helpdesk / fast-response value prop, human story angle.",
-    "angle": "Tell the value of fast, human helpdesk response. A real person picks up. Frame around reassurance and trust.",
-    "vertical": null
+    "vertical": null,
+    "link": "https://skyusa.us/solutions/cybersecurity"
   },
   {
     "id": "patch-management",
     "description": "Patch management and why 'we'll do it later' is risky.",
-    "angle": "Explain why timely patching matters, using a relatable 'we'll get to it' scenario. Practical, non-judgmental.",
-    "vertical": null
+    "angle": "Explain why timely patching matters, using a relatable 'we'll get to it' scenario. We handle patching in the background, scheduled and tested.",
+    "vertical": null,
+    "link": "https://skyusa.us/solutions/cybersecurity"
+  },
+  {
+    "id": "backup-dr-myth-vs-reality",
+    "description": "Backup and disaster recovery, myth vs reality (Veeam).",
+    "angle": "Bust a backup misconception. Real recoverability means tested, offline copies. We run Veeam-based backup and disaster recovery, tested regularly.",
+    "vertical": null,
+    "link": "https://skyusa.us/solutions/veeam-backup"
   },
   {
     "id": "small-biz-cyber-stat",
     "description": "Small-business cyber stat + reassurance + soft CTA.",
-    "angle": "Use the ~60% of small businesses close within 6 months of a cyberattack stat sparingly, then pivot to reassurance and accessible protection.",
-    "vertical": null
+    "angle": "Use the ~60% of small businesses close within 6 months of a cyberattack stat sparingly, then pivot to accessible, managed protection.",
+    "vertical": null,
+    "link": "https://skyusa.us/solutions/cybersecurity"
   },
   {
-    "id": "m365-azure-cloud",
-    "description": "Microsoft 365 / Azure / cloud security tips.",
-    "angle": "One practical cloud security tip for M365 or Azure (e.g. conditional access, secure sharing). Keep it approachable.",
-    "vertical": null
+    "id": "what-an-msp-does",
+    "description": "'What an MSP actually does' explainer.",
+    "angle": "Demystify managed IT: a dedicated IT department without the payroll. Monitoring, security, backups, helpdesk as one coordinated plan.",
+    "vertical": null,
+    "link": "https://skyusa.us/solutions"
   },
   {
     "id": "enterprise-security-on-purpose",
     "description": "'Enterprise security for small business, on purpose' credibility post.",
-    "angle": "Lean into the tagline: we brought enterprise IT security to small business, on purpose. Credibility + mission, no enterprise price tag.",
-    "vertical": null
+    "angle": "We brought enterprise IT security to small business, on purpose. Robust protection without the enterprise price tag.",
+    "vertical": null,
+    "link": "https://skyusa.us/solutions"
+  },
+  {
+    "id": "m365-security",
+    "description": "Microsoft 365 security tips.",
+    "angle": "One practical M365 security tip (conditional access, legacy auth, secure sharing). Approachable.",
+    "vertical": null,
+    "link": "https://skyusa.us/solutions/microsoft-365"
+  },
+  {
+    "id": "cloud-azure",
+    "description": "Cloud / Microsoft Azure infrastructure tips.",
+    "angle": "A practical cloud tip: right-sizing, cost control, or secure architecture on Azure. Keep it grounded.",
+    "vertical": null,
+    "link": "https://skyusa.us/solutions/microsoft-azure"
+  },
+  {
+    "id": "ai-implementation",
+    "description": "Governed AI adoption for business (a real SkySystems focus).",
+    "angle": "Small and mid-sized teams can adopt AI safely. Talk about governed AI, shadow-AI risk, and getting real productivity without failing an audit. Practical, not hype.",
+    "vertical": null,
+    "link": "https://skyusa.us/ai-implementation"
+  },
+  {
+    "id": "helpdesk-human-story",
+    "description": "Helpdesk / fast-response value prop, human story angle.",
+    "angle": "A real engineer answers, no phone tree, no ticket lost in a queue. Frame around reassurance and trust on the bad days.",
+    "vertical": null,
+    "link": "https://skyusa.us/solutions/helpdesk"
+  },
+  {
+    "id": "voip-3cx",
+    "description": "Business phone systems / VoIP (3CX).",
+    "angle": "Modern business phones: reliable, mobile, and cost-effective. 3CX-based systems that just work across locations.",
+    "vertical": null,
+    "link": "https://skyusa.us/solutions/3cx-pbx"
+  },
+  {
+    "id": "firewall-network",
+    "description": "Network security / firewalls (WatchGuard) + secure WiFi.",
+    "angle": "Your firewall and WiFi are the front door. Talk about layered network defense and secure, segmented WiFi without the jargon.",
+    "vertical": null,
+    "link": "https://skyusa.us/solutions/watchguard-firewalls"
+  },
+  {
+    "id": "vertical-public-safety",
+    "description": "Public Safety & Municipalities: CJIS, dispatch/CAD uptime, ransomware.",
+    "angle": "Mission-critical IT for those who serve. CJIS-compliant networks, ransomware defense, dispatch/CAD uptime, audit-ready documentation.",
+    "vertical": "Public Safety & Municipalities",
+    "link": "https://skyusa.us/industries/public-safety"
+  },
+  {
+    "id": "vertical-ministries",
+    "description": "Ministries & Non-Profits: donor data, streaming, volunteer access.",
+    "angle": "IT that protects your mission. Secure donor and member data, broadcast-quality streaming, and access control when volunteers move on. Enterprise demands on a lean budget.",
+    "vertical": "Ministries & Non-Profits",
+    "link": "https://skyusa.us/industries/ministries"
+  },
+  {
+    "id": "vertical-mega-churches",
+    "description": "Mega Churches & Multi-Campus: broadcast, multi-site, AI-ready.",
+    "angle": "Enterprise scale, kingdom mission. Multi-campus infrastructure, broadcast-grade production that never drops, made AI-ready so staff can do more ministry.",
+    "vertical": "Mega Churches & Multi-Campus",
+    "link": "https://skyusa.us/industries/mega-churches"
+  },
+  {
+    "id": "vertical-financial-services",
+    "description": "Financial Services: fraud, regulator-grade security, governed AI.",
+    "angle": "Attackers follow the money. Community banks, credit unions, RIAs, and fintechs get regulator-grade security, exam-ready compliance, and governed AI. Defend against wire and invoice fraud.",
+    "vertical": "Financial Services",
+    "link": "https://skyusa.us/industries/financial-services"
+  },
+  {
+    "id": "vertical-professional-services",
+    "description": "Professional Services: law/accounting/consulting confidentiality.",
+    "angle": "Your reputation runs on confidentiality. Protect privileged client data, keep billable systems fast, and add AI that multiplies professionals' time, safely.",
+    "vertical": "Professional Services",
+    "link": "https://skyusa.us/industries/professional-services"
+  },
+  {
+    "id": "vertical-retail",
+    "description": "Retail: PCI, multi-site POS uptime, guest experience.",
+    "angle": "Every location online, every payment secure. PCI-aligned multi-site networks that keep POS up at the busiest hour, plus AI to run leaner.",
+    "vertical": "Retail",
+    "link": "https://skyusa.us/industries/retail"
+  },
+  {
+    "id": "vertical-smaller-cities",
+    "description": "Smaller Cities & Towns: CJIS + ransomware on a public budget.",
+    "angle": "Big-city IT security, small-city budget. CJIS-proven compliance, ransomware defense, and safe AI for cities and towns priced for public budgets.",
+    "vertical": "Smaller Cities & Towns",
+    "link": "https://skyusa.us/industries/smaller-cities"
+  },
+  {
+    "id": "vertical-tmt",
+    "description": "Technology, Media & Telecom: cloud, DevOps, uptime, AI.",
+    "angle": "Ship faster, never go dark. Cloud, DevOps, and high-throughput infrastructure for tech, media, and telecom, plus AI in products and operations.",
+    "vertical": "Technology, Media & Telecom",
+    "link": "https://skyusa.us/industries/tmt"
+  },
+  {
+    "id": "local-austin-partner",
+    "description": "Why a local Austin IT partner beats a faceless national provider.",
+    "angle": "Austin-based, responsive, and invested in Central Texas businesses. A real partner you can reach, not a distant call center.",
+    "vertical": null,
+    "link": "https://skyusa.us/locations/austin"
   }
 ]

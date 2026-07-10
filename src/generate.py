@@ -95,7 +95,11 @@ def _build_user_prompt(
         lines.append(f"Target vertical for this post: {vertical}")
     lines.append(f"FORMAT for this post (follow it): {fmt['instruction']}")
     lines.append(f"LENGTH for this post: {length['instruction']}")
-    lines.append(f"You may include a link to {BRAND['website']} in the CTA.")
+    link = theme.get("link") or BRAND["website"]
+    lines.append(
+        f"CAPTION LINK for this post (put this EXACT URL in the caption, do not "
+        f"change it to the homepage): {link}"
+    )
 
     if recent:
         recent_hooks = [
@@ -212,6 +216,7 @@ def generate_post(
     item = _make_item(parsed, theme["id"])
     item["format"] = fmt["id"]
     item["length"] = length["id"]
+    item["link"] = theme.get("link") or BRAND["website"]
     logger.info("Generated post id=%s (%d chars)", item["id"], len(item["post_text"]))
     return item
 
