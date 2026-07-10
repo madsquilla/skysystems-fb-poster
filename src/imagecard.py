@@ -425,7 +425,13 @@ def _clean_body_for_image(post_text: str) -> str:
     return "\n".join(kept).strip()
 
 
-_LW, _LH = 1200, 630
+_LW, _LH = 1080, 1080
+
+
+def _center_start(block_h, top=140, bottom=175):
+    """Vertical start y so a content block of height block_h sits centered
+    between top padding and the footer zone."""
+    return max(top, (_LH - bottom - block_h) // 2)
 
 
 def _landscape_overlay() -> Image.Image:
@@ -622,23 +628,28 @@ def render_stat(post_text, out_path, kicker, headline, accent, seed=None):
     """Big-number hero for stat-driven posts -- gradient number with glow."""
     img = _premium_bg(accent, (seed or 0))
     draw = ImageDraw.Draw(img)
-    margin = 90
-    _kicker_tab(draw, margin, 80, kicker, accent)
+    margin = 92
     stat = _first_stat(post_text, headline) or "24/7"
-    fn = _font("Rajdhani-Bold.ttf", 212)
-    _grad_text(img, margin - 8, 116, stat, fn, _lighten(accent, 0.6), accent,
+    fn = _font("Rajdhani-Bold.ttf", 300)
+    num_h = int(fn.size * 0.80)
+    fh = _font("Rajdhani-Bold.ttf", 58)
+    hl = _wrap(draw, (headline or "").upper(), fh, _LW - 2 * margin)[:3]
+    fs = _font("NunitoSans.ttf", 27)
+    support = _wrap(draw, _lead_sentence(post_text), fs, _LW - 2 * margin)[:2]
+    kicker_h, head_lh, sup_lh = 58, 60, 37
+    block_h = kicker_h + num_h + len(hl) * head_lh + 16 + len(support) * sup_lh
+    y = _center_start(block_h, top=110, bottom=185)
+    _kicker_tab(draw, margin, y, kicker, accent)
+    y += kicker_h + 6
+    _grad_text(img, margin - 10, y, stat, fn, _lighten(accent, 0.6), accent,
                shadow=True, glow=accent)
+    y += num_h + 14
     draw = ImageDraw.Draw(img)
-    y = 372
-    fh = _font("Rajdhani-Bold.ttf", 52)
-    hl = _wrap(draw, (headline or "").upper(), fh, _LW - 2 * margin)[:2]
-    y = _draw_headline_grad(img, margin, y, hl, fh, 54, accent)
-    draw = ImageDraw.Draw(img)
-    y += 10
-    fs = _font("NunitoSans.ttf", 24)
-    for ln in _wrap(draw, _lead_sentence(post_text), fs, _LW - 2 * margin)[:2]:
+    y = _draw_headline_grad(img, margin, y, hl, fh, head_lh, accent)
+    y += 12
+    for ln in support:
         draw.text((margin, y), ln, font=fs, fill=(196, 208, 222))
-        y += 34
+        y += sup_lh
     _footer_navy(img, draw, margin)
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     img.convert("RGB").save(out_path, "PNG")
@@ -651,38 +662,41 @@ def render_checklist(post_text, out_path, kicker, headline, accent, seed=None):
     img = Image.new("RGB", (_LW, _LH), PAPER).convert("RGBA")
     draw = ImageDraw.Draw(img)
     draw.rectangle([0, 0, _LW, 8], fill=accent)
-    margin = 84
-    _kicker_tab(draw, margin, 56, kicker, accent)
-    y = 116
-    fh = _font("Rajdhani-Bold.ttf", 50)
-    for ln in _wrap(draw, (headline or "").upper(), fh, _LW - 2 * margin)[:2]:
-        draw.text((margin, y), ln, font=fh, fill=INK)
-        y += 52
-    y += 22
+    margin = 90
+    fh = _font("Rajdhani-Bold.ttf", 58)
+    hl = _wrap(draw, (headline or "").upper(), fh, _LW - 2 * margin)[:2]
     items = _list_items(post_text)
     if not items:
         items = [s for s in _lead_sentence(post_text).split(". ") if s][:3]
-    fi = _font("NunitoSans.ttf", 25)
-    fb = _font("Rajdhani-Bold.ttf", 25)
-    limit = _LH - 100
-    for idx, it in enumerate(items[:4], 1):
-        if y + 44 > limit:
-            break
-        draw.ellipse([margin, y, margin + 40, y + 40], fill=accent)
+    fi = _font("NunitoSans.ttf", 28)
+    fb = _font("Rajdhani-Bold.ttf", 27)
+    item_lines = [_wrap(draw, it, fi, _LW - margin - 66 - margin)[:2] for it in items[:4]]
+    kicker_h, head_lh = 54, 60
+    items_h = sum(max(60, len(ls) * 37 + 16) for ls in item_lines)
+    block_h = kicker_h + len(hl) * head_lh + 28 + items_h
+    bar_h = 80
+    y = max(60, (_LH - bar_h - block_h) // 2)
+    _kicker_tab(draw, margin, y, kicker, accent)
+    y += kicker_h
+    for ln in hl:
+        draw.text((margin, y), ln, font=fh, fill=INK)
+        y += head_lh
+    y += 28
+    for idx, lines in enumerate(item_lines, 1):
+        draw.ellipse([margin, y, margin + 44, y + 44], fill=accent)
         ns = str(idx)
         nw = draw.textlength(ns, font=fb)
-        draw.text((margin + 20 - nw / 2, y + 6), ns, font=fb, fill=(255, 255, 255))
-        ty = y + 3
-        for ln in _wrap(draw, it, fi, _LW - margin - 60 - margin)[:2]:
-            draw.text((margin + 58, ty), ln, font=fi, fill=(54, 68, 82))
-            ty += 33
-        y = max(y + 52, ty + 12)
-    bar_h = 76
+        draw.text((margin + 22 - nw / 2, y + 8), ns, font=fb, fill=(255, 255, 255))
+        ty = y + 4
+        for ln in lines:
+            draw.text((margin + 66, ty), ln, font=fi, fill=(54, 68, 82))
+            ty += 37
+        y = max(y + 60, ty + 16)
     draw.rectangle([0, _LH - bar_h, _LW, _LH], fill=NAVY_DEEP)
-    _place_logo_full(img, margin, _LH - bar_h + (bar_h - 42) // 2, 42)
-    fd = _font("Rajdhani-SemiBold.ttf", 23)
+    _place_logo_full(img, margin, _LH - bar_h + (bar_h - 44) // 2, 44)
+    fd = _font("Rajdhani-SemiBold.ttf", 24)
     dw = draw.textlength("skyusa.us", font=fd)
-    draw.text((_LW - margin - dw, _LH - bar_h + (bar_h - 22) // 2), "skyusa.us",
+    draw.text((_LW - margin - dw, _LH - bar_h + (bar_h - 24) // 2), "skyusa.us",
               font=fd, fill=(150, 166, 182))
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     img.convert("RGB").save(out_path, "PNG")
@@ -732,27 +746,31 @@ def render_light_statement(post_text, out_path, kicker, headline, accent, seed=N
     img = Image.new("RGB", (_LW, _LH), PAPER).convert("RGBA")
     draw = ImageDraw.Draw(img)
     draw.rectangle([0, 0, 9, _LH], fill=accent)
-    margin = 88
-    _kicker_tab(draw, margin, 72, kicker, accent)
-    y = 152
+    margin = 90
     headline = (headline or "").strip().upper()
-    fh = _font("Rajdhani-Bold.ttf", 98)
-    hl, head_lh = [headline], 98
-    for hs in range(98, 53, -6):
+    fh = _font("Rajdhani-Bold.ttf", 108)
+    hl, head_lh = [headline], 106
+    for hs in range(108, 57, -6):
         fh = _font("Rajdhani-Bold.ttf", hs)
-        hl = _wrap(draw, headline, fh, _LW - 2 * margin - 40)
+        hl = _wrap(draw, headline, fh, _LW - 2 * margin - 20)
         head_lh = int(hs * 1.0)
-        if len(hl) <= 3:
+        if len(hl) <= 4:
             break
+    fs = _font("NunitoSans.ttf", 27)
+    support = _wrap(draw, _lead_sentence(post_text), fs, _LW - 2 * margin - 20)[:3]
+    kicker_h, rule_h, sup_lh = 56, 46, 40
+    block_h = kicker_h + len(hl) * head_lh + rule_h + len(support) * sup_lh
+    y = _center_start(block_h, top=130, bottom=175)
+    _kicker_tab(draw, margin, y, kicker, accent)
+    y += kicker_h
     for ln in hl:
         draw.text((margin, y), ln, font=fh, fill=INK)
         y += head_lh
     draw.rectangle([margin, y + 12, margin + 92, y + 20], fill=accent)
-    y += 44
-    fs = _font("NunitoSans.ttf", 26)
-    for ln in _wrap(draw, _lead_sentence(post_text), fs, _LW - 2 * margin - 40)[:3]:
+    y += rule_h
+    for ln in support:
         draw.text((margin, y), ln, font=fs, fill=(84, 98, 112))
-        y += 38
+        y += sup_lh
     _footer_bar(img, draw, margin)
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     img.convert("RGB").save(out_path, "PNG")
@@ -769,31 +787,35 @@ def render_bold_color(post_text, out_path, kicker, headline, accent, seed=None):
         d0.line([(0, y), (_LW, y)],
                 fill=tuple(round(accent[i] + (deep[i] - accent[i]) * t) for i in range(3)))
     img = base.convert("RGBA")
-    img.alpha_composite(_radial_glow(820, 820, _lighten(accent, 0.55), 0.30), (600, -300))
+    img.alpha_composite(_radial_glow(880, 880, _lighten(accent, 0.55), 0.30), (540, -320))
     _grain(img, 9)
     draw = ImageDraw.Draw(img)
-    margin = 88
-    fk = _font("Rajdhani-SemiBold.ttf", 24)
-    _draw_tracked(draw, (margin, 78), (kicker or "").upper(), fk, (255, 255, 255), 5)
-    y = 154
+    margin = 90
     headline = (headline or "").strip().upper()
-    fh = _font("Rajdhani-Bold.ttf", 100)
-    hl, head_lh = [headline], 100
-    for hs in range(100, 55, -6):
+    fh = _font("Rajdhani-Bold.ttf", 112)
+    hl, head_lh = [headline], 110
+    for hs in range(112, 59, -6):
         fh = _font("Rajdhani-Bold.ttf", hs)
         hl = _wrap(draw, headline, fh, _LW - 2 * margin)
         head_lh = int(hs * 1.0)
-        if len(hl) <= 3:
+        if len(hl) <= 4:
             break
+    fs = _font("NunitoSans.ttf", 27)
+    support = _wrap(draw, _lead_sentence(post_text), fs, _LW - 2 * margin)[:3]
+    kicker_h, rule_h, sup_lh = 52, 46, 40
+    block_h = kicker_h + len(hl) * head_lh + rule_h + len(support) * sup_lh
+    y = _center_start(block_h, top=130, bottom=175)
+    fk = _font("Rajdhani-SemiBold.ttf", 24)
+    _draw_tracked(draw, (margin, y), (kicker or "").upper(), fk, (255, 255, 255), 5)
+    y += kicker_h
     for ln in hl:
         draw.text((margin, y), ln, font=fh, fill=(255, 255, 255))
         y += head_lh
     draw.rectangle([margin, y + 12, margin + 92, y + 20], fill=(255, 255, 255))
-    y += 44
-    fs = _font("NunitoSans.ttf", 26)
-    for ln in _wrap(draw, _lead_sentence(post_text), fs, _LW - 2 * margin)[:2]:
+    y += rule_h
+    for ln in support:
         draw.text((margin, y), ln, font=fs, fill=(238, 244, 250))
-        y += 38
+        y += sup_lh
     _footer_bar(img, draw, margin)
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     img.convert("RGB").save(out_path, "PNG")
@@ -826,20 +848,30 @@ def render_two_block(post_text, out_path, kicker, headline, accent, seed=None):
     draw.rectangle([0, half - 3, _LW, half + 3], fill=accent)
     _grain(img, 8)
     draw = ImageDraw.Draw(img)
-    margin = 88
-    fl = _font("Rajdhani-Bold.ttf", 30)
-    ft = _font("NunitoSans.ttf", 25)
-    draw.text((margin, 50), l1, font=fl, fill=(150, 164, 178))
-    yy = 98
-    for ln in _wrap(draw, t1, ft, _LW - 2 * margin)[:3]:
-        draw.text((margin, yy), ln, font=ft, fill=(214, 224, 234))
-        yy += 34
-    draw.text((margin, half + 36), l2, font=fl, fill=accent)
-    yy = half + 84
-    for ln in _wrap(draw, t2, ft, _LW - 2 * margin - 220)[:3]:
-        draw.text((margin, yy), ln, font=ft, fill=WHITE)
-        yy += 34
-    _place_logo_full(img, _LW - margin - 156, _LH - 64, 42)
+    margin = 90
+    fl = _font("Rajdhani-Bold.ttf", 34)
+    ft = _font("NunitoSans.ttf", 29)
+    lab_h, line_h = 54, 40
+    t1_lines = _wrap(draw, t1, ft, _LW - 2 * margin)[:4]
+    top_h = lab_h + len(t1_lines) * line_h
+    ty = (half - top_h) // 2
+    draw.text((margin, ty), l1, font=fl, fill=(150, 164, 178))
+    ty += lab_h
+    for ln in t1_lines:
+        draw.text((margin, ty), ln, font=ft, fill=(214, 224, 234))
+        ty += line_h
+    t2_lines = _wrap(draw, t2, ft, _LW - 2 * margin - 40)[:4]
+    bot_h = lab_h + len(t2_lines) * line_h
+    by = half + (half - 76 - bot_h) // 2
+    draw.text((margin, by), l2, font=fl, fill=accent)
+    by += lab_h
+    for ln in t2_lines:
+        draw.text((margin, by), ln, font=ft, fill=WHITE)
+        by += line_h
+    _place_logo_full(img, margin, _LH - 74, 44)
+    fd = _font("Rajdhani-SemiBold.ttf", 23)
+    dw = draw.textlength("skyusa.us", font=fd)
+    draw.text((_LW - margin - dw, _LH - 56), "skyusa.us", font=fd, fill=(150, 166, 182))
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     img.convert("RGB").save(out_path, "PNG")
     return "two-block"
@@ -847,7 +879,7 @@ def render_two_block(post_text, out_path, kicker, headline, accent, seed=None):
 
 def render_band(post_text, out_path, kicker, headline, accent, photo_path, seed=None):
     """Brand-toned photo on top, solid navy band with text on the bottom."""
-    ph_h = 326
+    ph_h = 560
     img = _premium_bg(accent, (seed or 0))
     photo = _brand_tone(ImageOps.fit(Image.open(photo_path).convert("RGB"),
                                      (_LW, ph_h), method=Image.LANCZOS), accent).convert("RGBA")
@@ -863,12 +895,16 @@ def render_band(post_text, out_path, kicker, headline, accent, photo_path, seed=
     ImageDraw.Draw(seam).rectangle([0, 28, _LW, 32], fill=(*accent, 255))
     img.alpha_composite(seam.filter(ImageFilter.GaussianBlur(6)), (0, ph_h - 30))
     draw.rectangle([0, ph_h, _LW, ph_h + 4], fill=accent)
-    margin = 80
-    ty = ph_h + 34
+    margin = 82
+    fh = _font("Rajdhani-Bold.ttf", 56)
+    hl = _wrap(draw, (headline or "").upper(), fh, _LW - 2 * margin)[:3]
+    kh, hlh = 44, 58
+    block_h = kh + 16 + len(hl) * hlh
+    band_top, band_bot = ph_h + 8, _LH - 96
+    ty = band_top + max(0, (band_bot - band_top - block_h) // 2)
     _kicker_tab(draw, margin, ty, kicker, accent)
-    ty += 56
-    fh = _font("Rajdhani-Bold.ttf", 48)
-    _draw_headline_grad(img, margin, ty, _wrap(draw, (headline or "").upper(), fh, _LW - 2 * margin)[:2], fh, 50, accent)
+    ty += kh + 16
+    _draw_headline_grad(img, margin, ty, hl, fh, hlh, accent)
     draw = ImageDraw.Draw(img)
     _footer_navy(img, draw, margin)
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
@@ -882,16 +918,16 @@ def render_quote(post_text, out_path, kicker, headline, accent, seed=None):
     draw = ImageDraw.Draw(img)
     margin = 98
     q = (headline or "").strip() or _lead_sentence(post_text)
-    fh = _font("Rajdhani-Bold.ttf", 72)
-    hl, head_lh = [q.upper()], 76
-    for hs in range(72, 43, -5):
+    fh = _font("Rajdhani-Bold.ttf", 84)
+    hl, head_lh = [q.upper()], 88
+    for hs in range(84, 47, -5):
         fh = _font("Rajdhani-Bold.ttf", hs)
-        hl = _wrap(draw, q.upper(), fh, _LW - margin - 160)
+        hl = _wrap(draw, q.upper(), fh, _LW - margin - 150)
         head_lh = int(hs * 1.06)
-        if len(hl) <= 4:
+        if len(hl) <= 5:
             break
-    block_h = len(hl) * head_lh
-    top = max(120, (_LH - 150 - block_h) // 2)
+    block_h = len(hl) * head_lh + 46
+    top = _center_start(block_h, top=140, bottom=185)
     bar = Image.new("RGBA", (44, block_h + 48), (0, 0, 0, 0))
     ImageDraw.Draw(bar).rounded_rectangle([18, 18, 26, block_h + 26], 4, fill=(*accent, 255))
     img.alpha_composite(bar.filter(ImageFilter.GaussianBlur(8)), (margin - 18, top - 18))
@@ -944,9 +980,9 @@ def _premium_bg(accent, seed=0, second=None):
     """Rich gradient-mesh navy background with soft accent glows + grain."""
     second = second or (BLUE if accent != BLUE else GREEN_SOFT)
     img = _vgrad(_LW, _LH, (13, 26, 44), (6, 10, 18)).convert("RGBA")
-    img.alpha_composite(_radial_glow(820, 820, accent, 0.55), (760, -240))
-    img.alpha_composite(_radial_glow(680, 680, second, 0.30), (-220, 250))
-    img.alpha_composite(_radial_glow(420, 420, accent, 0.18), (380, 360))
+    img.alpha_composite(_radial_glow(880, 880, accent, 0.55), (560, -320))
+    img.alpha_composite(_radial_glow(760, 760, second, 0.30), (-300, 560))
+    img.alpha_composite(_radial_glow(460, 460, accent, 0.16), (330, 520))
     _grain(img, 9)
     return img
 
@@ -999,37 +1035,36 @@ def render_hero(post_text, out_path, kicker, headline, accent, seed=None):
     headline with depth, film grain."""
     img = _premium_bg(accent, (seed or 0))
     draw = ImageDraw.Draw(img)
-    margin = 90
-    # glowing kicker tab
-    glow = _radial_glow(360, 150, accent, 0.5)
-    img.alpha_composite(glow, (margin - 80, 30))
-    draw = ImageDraw.Draw(img)
-    _kicker_tab(draw, margin, 80, kicker, accent)
-    col_w = _LW - 2 * margin - 60
+    margin = 92
+    col_w = _LW - 2 * margin - 20
     headline = (headline or "").strip().upper()
-    fh = _font("Rajdhani-Bold.ttf", 112)
-    hl, head_lh = [headline], 110
-    for hs in range(112, 61, -7):
+    fh = _font("Rajdhani-Bold.ttf", 120)
+    hl, head_lh = [headline], 118
+    for hs in range(120, 65, -7):
         fh = _font("Rajdhani-Bold.ttf", hs)
         hl = _wrap(draw, headline, fh, col_w)
         head_lh = int(hs * 0.98)
-        if len(hl) <= 3:
+        if len(hl) <= 4:
             break
-    y = 168
-    y = _draw_headline_grad(img, margin, y, hl, fh, head_lh, accent)
-    # glowing accent rule
-    rule = Image.new("RGBA", (240, 60), (0, 0, 0, 0))
-    ImageDraw.Draw(rule).rounded_rectangle([12, 24, 130, 32], 4, fill=(*accent, 255))
-    rule = rule.filter(ImageFilter.GaussianBlur(0))
-    glr = rule.filter(ImageFilter.GaussianBlur(7))
-    img.alpha_composite(glr, (margin - 12, y + 6))
-    img.alpha_composite(rule, (margin - 12, y + 6))
-    y += 60
+    fs = _font("NunitoSans.ttf", 29)
+    support = _wrap(draw, _lead_sentence(post_text), fs, col_w)[:3]
+    kicker_h, rule_h, sup_lh = 56, 58, 43
+    block_h = kicker_h + len(hl) * head_lh + rule_h + len(support) * sup_lh
+    y = _center_start(block_h, top=150, bottom=190)
+    img.alpha_composite(_radial_glow(400, 170, accent, 0.5), (margin - 90, y - 46))
     draw = ImageDraw.Draw(img)
-    fs = _font("NunitoSans.ttf", 27)
-    for ln in _wrap(draw, _lead_sentence(post_text), fs, col_w)[:2]:
+    _kicker_tab(draw, margin, y, kicker, accent)
+    y += kicker_h
+    y = _draw_headline_grad(img, margin, y, hl, fh, head_lh, accent)
+    rule = Image.new("RGBA", (200, 44), (0, 0, 0, 0))
+    ImageDraw.Draw(rule).rounded_rectangle([12, 18, 122, 26], 4, fill=(*accent, 255))
+    img.alpha_composite(rule.filter(ImageFilter.GaussianBlur(7)), (margin - 12, y + 6))
+    img.alpha_composite(rule, (margin - 12, y + 6))
+    y += rule_h
+    draw = ImageDraw.Draw(img)
+    for ln in support:
         draw.text((margin, y), ln, font=fs, fill=(196, 208, 222))
-        y += 39
+        y += sup_lh
     _footer_navy(img, draw, margin)
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     img.convert("RGB").save(out_path, "PNG")
