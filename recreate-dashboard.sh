@@ -26,7 +26,7 @@ docker run -d --name plungepost-dashboard --restart unless-stopped \
   --env-file .env \
   -e TZ=America/Chicago \
   -l net.unraid.docker.icon="https://raw.githubusercontent.com/madsquilla/plungepost/master/assets/icon.png" \
-  -l net.unraid.docker.webui="http://[IP]:[PORT:8080]/" \
+  -l net.unraid.docker.webui="http://[IP]:8095/" \
   -p 8095:8080 \
   -v "$PWD/src":/app/src \
   -v "$PWD/assets":/app/assets \
