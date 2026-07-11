@@ -35,6 +35,7 @@ from flask import (
 
 import cards
 import content
+import fbauth
 import generate as gen
 import imagecard
 import onboard
@@ -365,6 +366,7 @@ def _render(page, title):
         design_labels=imagecard.DESIGN_LABELS,
         current_design=imagecard.current_design_id(),
         design_choice=tenants.account(cur_slug).get("design", "auto"),
+        env_app_id=os.environ.get("META_APP_ID", ""),
     )
 
 
@@ -767,6 +769,58 @@ def account_logo():
         flash("Logo updated.", "ok")
     except Exception as exc:  # noqa: BLE001
         flash(f"Could not read that image: {exc}", "err")
+    return redirect(url_for("account_settings"))
+
+
+@app.route("/account/fb-token", methods=["POST"])
+def account_fb_token():
+    """Turn a short-lived user token into a permanent Page token for THIS
+    account, entirely on the server. Nothing sensitive is committed anywhere."""
+    app_id = (request.form.get("app_id") or os.environ.get("META_APP_ID", "")).strip()
+    app_secret = (request.form.get("app_secret") or "").strip()
+    user_token = (request.form.get("user_token") or "").strip()
+    if not (app_id and app_secret and user_token):
+        flash("App ID, App Secret, and a short-lived user token are all required.", "err")
+        return redirect(url_for("account_settings"))
+    try:
+        pages = fbauth.long_lived_page_tokens(app_id, app_secret, user_token)
+    except Exception as exc:  # noqa: BLE001
+        flash(f"Facebook token exchange failed: {exc}", "err")
+        return redirect(url_for("account_settings"))
+    if not pages:
+        flash("You do not manage any Pages with that token (or pages_show_list "
+              "was not granted). Regenerate the user token with your Pages selected.",
+              "err")
+        return redirect(url_for("account_settings"))
+
+    acct = tenants.account()
+    pid = (acct.get("fb_page_id") or "").strip()
+    name = (acct.get("name") or "").lower()
+    match = None
+    if pid:
+        match = next((p for p in pages if p.get("id") == pid), None)
+    if not match and name:
+        match = next((p for p in pages
+                      if name in (p.get("name", "").lower())
+                      or p.get("name", "").lower() in name), None)
+    if not match and len(pages) == 1:
+        match = pages[0]
+    if not match:
+        listing = ", ".join(f"{p.get('name')} ({p.get('id')})" for p in pages)
+        flash("Could not tell which Page belongs to this account. Set its Page ID "
+              f"in the connection form above first, then retry. You manage: {listing}",
+              "err")
+        return redirect(url_for("account_settings"))
+    token = match.get("access_token")
+    if not token:
+        flash(f"\"{match.get('name')}\" returned no token -- the user token is "
+              "missing pages_manage_posts for that Page.", "err")
+        return redirect(url_for("account_settings"))
+    acct["fb_page_id"] = match["id"]
+    acct["fb_token"] = token
+    tenants.save_account(acct)
+    flash(f"Connected a permanent token for \"{match.get('name')}\". It will not "
+          "expire while you stay an admin.", "ok")
     return redirect(url_for("account_settings"))
 
 
@@ -1332,6 +1386,22 @@ TEMPLATE = r"""
         </form>
         <form method="post" action="{{ url_for('account_verify') }}" style="margin-top:10px;">
           <button class="btn outline" type="submit" {{ 'disabled' if not account.fb_page_id }}>Verify connection</button>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h3>Get a permanent token</h3>
+        <p class="hint">Tokens copied straight from Graph API Explorer expire in about an hour. Paste a short-lived <strong>User</strong> token here and PlungePost exchanges it (on this server) for a <strong>long-lived Page token</strong> that does not expire while you stay an admin. Nothing is sent anywhere except Facebook, and nothing is committed to GitHub.</p>
+        <ol class="hint" style="padding-left:18px;line-height:1.7;">
+          <li>developers.facebook.com &rarr; your app &rarr; Settings &rarr; Basic &rarr; copy the <strong>App Secret</strong> (click Show).</li>
+          <li>Graph API Explorer &rarr; <strong>User Token</strong>, with pages_show_list + pages_read_engagement + pages_manage_posts, your Page selected &rarr; Generate &rarr; copy the token.</li>
+          <li>Paste both below and Connect. Make sure this account's Page ID above is set so it grabs the right Page.</li>
+        </ol>
+        <form method="post" action="{{ url_for('account_fb_token') }}">
+          <input name="app_id" placeholder="App ID{{ ' (from env)' if env_app_id }}" value="{{ env_app_id or '' }}">
+          <input name="app_secret" placeholder="App Secret" autocomplete="off">
+          <input name="user_token" placeholder="Short-lived User token" autocomplete="off">
+          <button class="btn primary" type="submit" style="margin-top:10px;">Connect permanent token</button>
         </form>
       </div>
 
