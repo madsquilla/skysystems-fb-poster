@@ -402,15 +402,23 @@ def _has_logo_file() -> bool:
     return tenants.logo_full().exists()
 
 
+def _recolor_logo(logo: Image.Image, target) -> Image.Image:
+    """Recolor a (transparent) logo to a solid target color, keeping its shape
+    via the alpha channel. Turns a dark logo white on dark backgrounds, etc."""
+    out = Image.new("RGBA", logo.size, (target[0], target[1], target[2], 0))
+    out.putalpha(logo.split()[3])
+    return out
+
+
 def _place_logo_footer(base: Image.Image, x: int, y: int, height: int,
                        on_dark: bool = True) -> int:
     """Place the brand logo so it ALWAYS reads on its background.
 
-    - No logo file -> draw the account name (wordmark) in a color that contrasts
-      the background (light on dark, dark on light).
-    - Real logo -> if it has a baked background or low contrast with the footer,
-      set it on a contrasting rounded chip (white on dark, navy on light);
-      otherwise place it directly.
+    - No logo file -> draw the account name (wordmark) in a contrasting color.
+    - Transparent logo with low contrast -> recolor it to contrast (white on
+      dark, dark on light), so it changes with the background, no box.
+    - Opaque logo (baked-in background) -> can't recolor a photo-style logo, so
+      set it on a contrasting rounded chip instead.
     """
     if not _has_logo_file():
         return _draw_wordmark_footer(base, x, y, height, on_dark)
@@ -421,7 +429,8 @@ def _place_logo_footer(base: Image.Image, x: int, y: int, height: int,
     opaque = logo.split()[3].getextrema()[0] > 210
     bg_l = 26 if on_dark else 242
     contrast = abs(_image_luma(logo) - bg_l)
-    if opaque or contrast < 85:
+
+    if opaque:
         pad = max(12, height // 4)
         chip_w, chip_h = logo.width + pad * 2, logo.height + pad * 2
         chip_fill = (255, 255, 255, 255) if on_dark else (13, 24, 36, 255)
@@ -432,6 +441,10 @@ def _place_logo_footer(base: Image.Image, x: int, y: int, height: int,
         chip.alpha_composite(logo, (pad, pad))
         base.alpha_composite(chip, (x, y - pad))
         return chip_w
+
+    if contrast < 95:
+        target = (247, 250, 253) if on_dark else (17, 27, 39)
+        logo = _recolor_logo(logo, target)
     base.alpha_composite(logo, (x, y))
     return logo.width
 
