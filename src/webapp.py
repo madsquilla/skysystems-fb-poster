@@ -972,7 +972,7 @@ TEMPLATE = r"""
 </div>
 <div class="layout">
   <aside class="sidebar">
-    <div class="side-logo"><img src="{{ url_for('brand', name='logo_full.png') }}" alt="{{ current_name }}"></div>
+    <div class="side-logo"><img src="{{ url_for('brand', name='logo_full.png') }}?v={{ current_slug }}" alt="{{ current_name }}"></div>
     <div class="acct-switch">
       <select id="acctSelect" onchange="switchAcct(this.value)">
         {% for a in accounts %}<option value="{{ a.slug }}" {{ 'selected' if a.slug==current_slug }}>{{ a.name }}</option>{% endfor %}
