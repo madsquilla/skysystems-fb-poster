@@ -37,14 +37,20 @@ def build_card(item: dict) -> dict:
             avoid = {r.get("image_style") for r in recent if r.get("image_style")}
         except Exception:
             avoid = set()
-        # Pick a fitting template (statement / stat / checklist / editorial /
-        # split / overlay / band / quote / two-block / bold-color / light) and
-        # render it, rotating away from recent designs.
-        item["image_style"] = imagecard.render_post_graphic(
-            item["post_text"], out, kicker=kicker,
-            headline=item.get("image_headline", ""),
-            format_id=item.get("format", ""), photo_path=photo, avoid=avoid,
-        )
+        # Render the card. The primary engine is HTML/CSS via headless Chromium
+        # (professional typography + layout); if that is unavailable for any
+        # reason, fall back to the pure-Pillow renderer so a post is never blocked.
+        try:
+            import htmlcards
+            item["image_style"] = htmlcards.render_card(
+                item, out, photo_path=photo, avoid=avoid)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("HTML renderer unavailable (%s); using Pillow.", exc)
+            item["image_style"] = imagecard.render_post_graphic(
+                item["post_text"], out, kicker=kicker,
+                headline=item.get("image_headline", ""),
+                format_id=item.get("format", ""), photo_path=photo, avoid=avoid,
+            )
         if photo is not None:
             try:
                 Path(photo).unlink()

@@ -15,6 +15,10 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Headless Chromium for the HTML/CSS post renderer (htmlrender/htmlcards).
+# --with-deps installs the OS libraries Chromium needs on Debian slim.
+RUN playwright install --with-deps chromium
+
 # Application code, brand assets (fonts + logo), and seed data.
 COPY src/ ./src/
 COPY data/ ./data/
