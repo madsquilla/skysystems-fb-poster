@@ -211,9 +211,14 @@ def _theme(design, accent, accent2, mood):
         ink = "#f3f7fc"
         paper = "#0d1826"
         sub = "#9fb2c6"
+    r, g, b = _to_rgb(accent)
+    lt = 0.90 if mood == "bright" else 0.0
+    acc_lt = _mix(accent, paper, 0.82)
     vars_ = {
         "ACCENT": accent, "ACCENT2": accent2,
-        "ACC_DK": _darken(accent, 0.72), "ACC_LT": _lighten(accent, 0.86),
+        "ACC_DK": _darken(accent, 0.72), "ACC_LT": acc_lt,
+        "ACC_GLOW": f"rgba({r},{g},{b},0.14)",
+        "ACC_DOT": f"rgba({r},{g},{b},0.16)",
         "INK": ink, "PAPER": paper, "SUB": sub,
         "HEAD": head_fam, "BODY": body_fam,
         "HW": str(d["hw"]), "RADIUS": str(d["radius"]) + "px",
@@ -231,10 +236,10 @@ _BASE_CSS = """
 html,body{width:1080px;height:1080px;}
 #card{width:1080px;height:1080px;background:{PAPER};color:{INK};position:relative;
   overflow:hidden;font-family:'{BODY}',sans-serif;-webkit-font-smoothing:antialiased;}
-.pad{position:absolute;inset:0;padding:104px 96px 96px;display:flex;flex-direction:column;}
+.pad{position:absolute;inset:0;padding:110px 96px 190px;display:flex;flex-direction:column;}
 .center-v{justify-content:center;}
-.head{font-family:'{HEAD}';font-weight:{HW};color:{INK};line-height:1.04;
-  letter-spacing:-.005em;text-transform:{TT};}
+.head{font-family:'{HEAD}';font-weight:{HW};color:{INK};line-height:1.06;
+  letter-spacing:-.01em;text-transform:{TT};text-wrap:balance;max-width:100%;}
 .kicker{align-self:flex-start;font-family:'{HEAD}';font-weight:600;font-size:24px;
   letter-spacing:.14em;text-transform:uppercase;margin-bottom:26px;}
 .k-pill{background:{ACCENT};color:#fff;padding:12px 24px;border-radius:999px;}
@@ -248,9 +253,24 @@ html,body{width:1080px;height:1080px;}
 .logo{height:78px;max-width:56%;object-fit:contain;object-position:left center;}
 .logo-wm{font-family:'{HEAD}';font-weight:{HW};font-size:34px;color:{ACCENT};}
 .dom{font-size:24px;color:{SUB};opacity:.85;white-space:nowrap;}
+.bg{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
 .blob{position:absolute;border-radius:50%;pointer-events:none;}
-.stripe{position:absolute;top:0;bottom:0;width:340px;right:-40px;transform:skewX(-12deg);
-  background:{ACCENT};opacity:.08;}
+.stripe{position:absolute;top:-80px;bottom:-80px;width:300px;right:-30px;
+  transform:skewX(-11deg);background:{ACCENT};opacity:.07;}
+.ring{position:absolute;border-radius:50%;border:44px solid {ACCENT};opacity:.06;}
+.glow{position:absolute;inset:0;background:radial-gradient(60% 55% at 82% 12%,
+  {ACC_GLOW} 0%, transparent 60%);}
+.dots{position:absolute;inset:0;background-image:radial-gradient({ACC_DOT} 3px,transparent 3px);
+  background-size:46px 46px;-webkit-mask-image:linear-gradient(120deg,#000 0%,transparent 62%);
+  mask-image:linear-gradient(120deg,#000 0%,transparent 62%);}
+.grid{position:absolute;inset:0;background-image:linear-gradient({ACC_DOT} 1px,transparent 1px),
+  linear-gradient(90deg,{ACC_DOT} 1px,transparent 1px);background-size:60px 60px;
+  -webkit-mask-image:radial-gradient(70% 70% at 78% 18%,#000,transparent);
+  mask-image:radial-gradient(70% 70% at 78% 18%,#000,transparent);}
+.wave{position:absolute;left:-10%;right:-10%;bottom:-46%;height:80%;border-radius:50%;
+  background:{ACC_LT};}
+.cornerblock{position:absolute;top:0;right:0;width:44%;height:40%;background:{ACC_LT};
+  border-bottom-left-radius:44px;}
 .photo{position:absolute;inset:0;background-size:cover;background-position:center;}
 .scrim{position:absolute;inset:0;background:linear-gradient(to top,
   rgba(9,16,26,.92) 0%, rgba(9,16,26,.55) 32%, rgba(9,16,26,0) 62%);}
@@ -291,19 +311,41 @@ def _footer_html(logo_uri, domain, wm_name):
     return f'<div class="footer">{left}<div class="dom">{_esc(domain)}</div></div>'
 
 
-def _blobs(accent, accent2):
-    return (f'<div class="blob" style="width:520px;height:520px;top:-150px;'
-            f'right:-120px;background:{accent};opacity:.09;"></div>'
-            f'<div class="blob" style="width:360px;height:360px;bottom:-140px;'
-            f'left:-130px;background:{accent2};opacity:.08;"></div>')
+# A palette of tasteful background treatments. Each design allows a few; one is
+# picked per post (rotating) so a brand's feed varies instead of repeating.
+_BG_SETS = {
+    "soft-rounded": ["blobs", "glow", "dots", "wave"],
+    "friendly-round": ["blobs", "dots", "wave", "glow"],
+    "elegant-serif": ["minimal", "glow", "ring", "minimal"],
+    "bold-impact": ["stripe", "cornerblock", "glow", "minimal"],
+    "modern-grotesk": ["minimal", "dots", "glow", "cornerblock"],
+    "tech-condensed": ["grid", "glow", "minimal", "grid"],
+}
 
 
-def _motif_html(d, accent, accent2):
-    if d["motif"] == "blobs":
-        return _blobs(accent, accent2)
-    if d["motif"] == "stripe":
-        return '<div class="stripe"></div>'
-    return ""
+def _bg_html(variant, accent, accent2):
+    if variant == "blobs":
+        return ('<div class="bg">'
+                f'<div class="blob" style="width:460px;height:460px;top:-150px;'
+                f'right:-110px;background:{accent};opacity:.09;"></div>'
+                f'<div class="blob" style="width:300px;height:300px;bottom:-120px;'
+                f'left:-110px;background:{accent2};opacity:.08;"></div></div>')
+    if variant == "glow":
+        return '<div class="bg"><div class="glow"></div></div>'
+    if variant == "dots":
+        return '<div class="bg"><div class="dots"></div></div>'
+    if variant == "grid":
+        return '<div class="bg"><div class="grid"></div></div>'
+    if variant == "stripe":
+        return '<div class="bg"><div class="stripe"></div></div>'
+    if variant == "wave":
+        return '<div class="bg"><div class="wave"></div></div>'
+    if variant == "ring":
+        return ('<div class="bg"><div class="ring" style="width:620px;height:620px;'
+                'top:-220px;right:-180px;"></div></div>')
+    if variant == "cornerblock":
+        return '<div class="bg"><div class="cornerblock"></div></div>'
+    return ""  # minimal
 
 
 # --- layouts (return inner #card HTML) --------------------------------------
@@ -514,10 +556,12 @@ def render_card(item, out_path, photo_path=None, avoid=None, seed=None):
                      else '<div class="logo-wm" style="color:#fff;">%s</div>' % _esc(wm))
                     + '<div class="dom">%s</div>' % _esc(domain))
 
+    bg_set = _BG_SETS.get(design, ["glow", "minimal"])
+    bg_variant = rng.choice(bg_set)
     ctx = dict(d=d, kicker=kicker, headline=headline, lead=lead, items=items,
                stat=stat, accent=accent, accent2=accent2, photo=photo,
                footer=footer, footer_inner=footer_inner, footer_photo=footer_photo,
-               motif=_motif_html(d, accent, accent2), hsize=_hsize(headline))
+               motif=_bg_html(bg_variant, accent, accent2), hsize=_hsize(headline))
 
     inner = _LAYOUTS[layout](ctx)
     doc = ("<!doctype html><html><head><meta charset='utf-8'><style>"
