@@ -37,15 +37,22 @@ def build_card(item: dict) -> dict:
             avoid = {r.get("image_style") for r in recent if r.get("image_style")}
         except Exception:
             avoid = set()
-        # Render the card. The primary engine is HTML/CSS via headless Chromium
-        # (professional typography + layout); if that is unavailable for any
-        # reason, fall back to the pure-Pillow renderer so a post is never blocked.
-        try:
-            import htmlcards
-            item["image_style"] = htmlcards.render_card(
-                item, out, photo_path=photo, avoid=avoid)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("HTML renderer unavailable (%s); using Pillow.", exc)
+        # Renderer choice by account style:
+        #  - 'dark' (SkySystems / tech-condensed brands) keeps the original,
+        #    dialed-in Pillow "premium" renderer -- do not change what works.
+        #  - 'bright' (consumer/service brands) uses the new HTML/CSS engine.
+        # HTML failures fall back to Pillow so a post is never blocked.
+        use_html = tenants.style() != "dark"
+        rendered = False
+        if use_html:
+            try:
+                import htmlcards
+                item["image_style"] = htmlcards.render_card(
+                    item, out, photo_path=photo, avoid=avoid)
+                rendered = True
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("HTML renderer unavailable (%s); using Pillow.", exc)
+        if not rendered:
             item["image_style"] = imagecard.render_post_graphic(
                 item["post_text"], out, kicker=kicker,
                 headline=item.get("image_headline", ""),
