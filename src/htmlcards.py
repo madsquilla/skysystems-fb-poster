@@ -212,20 +212,33 @@ def _theme(design, accent, accent2, mood):
         paper = "#0d1826"
         sub = "#9fb2c6"
     r, g, b = _to_rgb(accent)
-    lt = 0.90 if mood == "bright" else 0.0
+    r2, g2, b2 = _to_rgb(accent2)
     acc_lt = _mix(accent, paper, 0.82)
+    if mood == "dark":
+        # Rich gradient-mesh navy with accent glows -- the premium dark look.
+        cardbg = (
+            f"radial-gradient(60% 52% at 82% 6%, rgba({r},{g},{b},0.30), transparent 60%),"
+            f"radial-gradient(55% 48% at 8% 96%, rgba({r2},{g2},{b2},0.24), transparent 62%),"
+            f"radial-gradient(40% 40% at 30% 50%, rgba({r},{g},{b},0.10), transparent 70%),"
+            "linear-gradient(158deg,#122238 0%,#0a1524 55%,#06101c 100%)")
+        head_grad = f"linear-gradient(180deg,#f6fbff 0%,{acc_lt} 118%)"
+    else:
+        cardbg = paper
+        head_grad = ""
     vars_ = {
         "ACCENT": accent, "ACCENT2": accent2,
         "ACC_DK": _darken(accent, 0.72), "ACC_LT": acc_lt,
         "ACC_GLOW": f"rgba({r},{g},{b},0.14)",
         "ACC_DOT": f"rgba({r},{g},{b},0.16)",
-        "INK": ink, "PAPER": paper, "SUB": sub,
+        "INK": ink, "PAPER": paper, "SUB": sub, "CARDBG": cardbg,
         "HEAD": head_fam, "BODY": body_fam,
         "HW": str(d["hw"]), "RADIUS": str(d["radius"]) + "px",
         "TRACK": d["tracking"],
         "TT": "uppercase" if d["case"] == "upper" else "none",
     }
     css = _BASE_CSS
+    if mood == "dark":
+        css += _DARK_CSS.replace("{HEAD_GRAD}", head_grad)
     for k, v in vars_.items():
         css = css.replace("{" + k + "}", v)
     return css, d
@@ -234,7 +247,7 @@ def _theme(design, accent, accent2, mood):
 _BASE_CSS = """
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{width:1080px;height:1080px;}
-#card{width:1080px;height:1080px;background:{PAPER};color:{INK};position:relative;
+#card{width:1080px;height:1080px;background:{CARDBG};color:{INK};position:relative;
   overflow:hidden;font-family:'{BODY}',sans-serif;-webkit-font-smoothing:antialiased;}
 .pad{position:absolute;inset:0;padding:110px 96px 190px;display:flex;flex-direction:column;}
 .center-v{justify-content:center;}
@@ -293,6 +306,24 @@ html,body{width:1080px;height:1080px;}
 .frame-card{position:absolute;inset:60px;border-radius:26px;background:{PAPER};
   border:2px solid {ACCENT};display:flex;flex-direction:column;justify-content:center;
   padding:0 76px;}
+"""
+
+# Premium dark-mode enhancements: gradient headline, glowing accents, film grain.
+_DARK_CSS = """
+#card .head{background:{HEAD_GRAD};-webkit-background-clip:text;background-clip:text;
+  color:transparent;}
+#card .sub{color:#aebfd2;}
+#card .rule{box-shadow:0 0 22px {ACCENT};}
+#card .kicker.k-tab,#card .kicker.k-pill{box-shadow:0 6px 26px rgba(0,0,0,.35);}
+#card .dom{color:#8fa4bb;}
+#card .statnum{text-shadow:0 0 60px {ACCENT};}
+#card .card-panel{background:#0f1d30;box-shadow:0 30px 80px rgba(0,0,0,.5);}
+#card .frame-bg{background:transparent;}
+#card .frame-card{background:rgba(15,29,48,.72);backdrop-filter:blur(2px);}
+#card .numtext{color:#cdd9e6;}
+#card .glow{background:radial-gradient(60% 55% at 82% 12%,rgba(255,255,255,.05) 0%,transparent 60%);}
+.grain{position:absolute;inset:0;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
 """
 
 
@@ -565,9 +596,10 @@ def render_card(item, out_path, photo_path=None, avoid=None, seed=None):
                motif=_bg_html(bg_variant, accent, accent2), hsize=_hsize(headline))
 
     inner = _LAYOUTS[layout](ctx)
+    grain = '<div class="grain"></div>' if mood == "dark" else ""
     doc = ("<!doctype html><html><head><meta charset='utf-8'><style>"
            + _fontfaces() + theme_css + "</style></head><body><div id='card'>"
-           + inner + "</div></body></html>")
+           + inner + grain + "</div></body></html>")
     htmlrender.render_html_to_png(doc, out_path)
     logger.info("Rendered %s card (design=%s) -> %s", layout, design, out_path)
     return layout
