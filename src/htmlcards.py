@@ -446,11 +446,12 @@ def _photo_full(ctx):
 
 
 def _photo_top(ctx):
-    return f"""<div class="photo" style="height:560px;background-image:url('{ctx['photo']}');"></div>
-      <div class="pad center-v" style="top:560px;bottom:0;inset:auto;position:absolute;
-        left:0;right:0;padding:56px 96px 96px;">
+    return f"""<div class="photo" style="top:0;bottom:auto;height:560px;
+        background-image:url('{ctx['photo']}');"></div>
+      <div style="position:absolute;left:0;right:0;top:560px;bottom:0;
+        padding:56px 96px 170px;display:flex;flex-direction:column;justify-content:center;">
         {_kicker_html(ctx['d'], ctx['kicker'])}
-        <div class="head" style="font-size:{min(ctx['hsize'],72)}px;">{ctx['headline']}</div>
+        <div class="head" style="font-size:{min(ctx['hsize'],68)}px;">{ctx['headline']}</div>
         <div class="rule"></div>
         <div class="sub">{ctx['lead']}</div>
       </div>
